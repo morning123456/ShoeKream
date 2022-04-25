@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--adminNotice-->
+<!DOCTYPE sqlMap
+	PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+	"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+	
+	<sqlMap namespace="adminNotice">
+  <!--동적쿼리 검색할때 옵션이나 입력을 했을 경우 실행한다.-->
+  <sql id="search">
+  	<dynamic prepend = " where">
+  		<isNotEmpty property = "sword">
+      		NOTICE_TITLE like '%'||#sword#||'%'
+      	</isNotEmpty>
+  	</dynamic>
+  </sql>
+
+
+
+	<select id="selectList"  parameterClass="map" resultClass="noticeVo">
+    
+     select A.* from (
+	    select rownum as rnum, B.*  from (
+	         select * from notice 
+	         <include refid="search"/>
+	         ORDER BY to_number(notice) DESC ) B
+	 <![CDATA[
+	     where rownum <= #end#) A 
+	 where A.rnum >=#start#
+      ]]>
+     </select>
+     
+   <select id="totalCount" resultClass="int">
+       select count(*) from NOTICE
+   </select>
+   
+   <select id="noticeDetail" parameterClass="String" resultClass="noticeVo">
+   		select *
+   		from notice
+   		where notice=#notice#
+   </select>
+   
+   <update id="noticeUpdate" parameterClass="noticeVo">
+   update notice 
+	  set NOTICE_TITLE=#notice_title#,
+    	  NOTICE_CONTENT=#notice_content#,
+    	  NOTICE_DATE=sysdate,
+    	  NOTICE_CAT=#notice_cat#,
+    	  NOTICE_STA=#notice_sta#
+    where NOTICE=#notice#
+   </update>
+   
+   <delete id="noticeDelete" parameterClass="String">
+   DELETE FROM notice WHERE NOTICE = #notice#
+   </delete>
+   
+   <insert id="noticeInsert" parameterClass="noticeVo">
+   insert into notice(NOTICE,NOTICE_TITLE,NOTICE_CONTENT,NOTICE_DATE,NOTICE_CAT,NOTICE_STA)
+   VALUES ((SELECT NVL(MAX(to_number(notice)), 0)+1 FROM notice), #notice_title#,#notice_content#,sysdate,#notice_cat#,#notice_sta#)
+   </insert>
+   
+</sqlMap>

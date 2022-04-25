@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+
+<!DOCTYPE sqlMap
+	PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+	"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+	
+	<sqlMap namespace = "bid">
+	 
+	 <!-- '판매하기'에서 즉시 구매가 불러오기 -->
+ 	<select id="sellNowCall" resultClass="String" parameterClass="map">
+	   select  nvl(tb.price,0) as bid_price 
+     from prod_size a, (select min(bid_price) as price ,c.size_id as cid
+                         from bid b, prod_size c
+                         where  b.bid_position ='seller'
+                           and b.size_id=c.size_id
+                           and b.BID_STATE = '0'
+                         group by c.size_id) tb
+   where a.size_id=tb.cid(+)
+    and a.prod_id=#prodid#
+    and a.size_name=#size_name#
+	 </select>
+	 
+	 
+	  <!-- '구매하기'에서 즉시 판매가 불러오기 -->
+ 	<select id="buyNowCall" resultClass="String" parameterClass="map">
+	   select  nvl(tb.price,0) as bid_price 
+     from prod_size a, (select max(bid_price) as price ,c.size_ID as cid
+                         from bid b, PROD_SIZE c
+                         where  b.BID_POSITION ='buyer'
+                           and b.SIZE_ID=c.SIZE_ID
+                           and b.BID_STATE = '0'
+                         group by c.size_ID) tb
+   where a.size_ID=tb.cid(+)
+    and a.PROD_ID=#prodid#
+    and a.size_name=#size_name#
+	 </select>
+	 
+	 
+	 
+	 <!-- '판매하기'에서 상품별 사이즈, 가격 가져오기 -->
+	 <select id="sellInfo" resultClass="bidvo" parameterClass="string">
+	 
+	  select a.size_name, nvl(tb.price,0) as bid_price ,a.size_id
+     from prod_size a, (select max(bid_price) as price ,c.size_ID as cid
+                         from bid b, PROD_SIZE c
+                         where  b.BID_POSITION ='buyer'
+                           and b.SIZE_ID=c.SIZE_ID
+                           and b.BID_STATE = '0'
+                         group by c.size_ID) tb
+   where a.size_ID=tb.cid(+)
+    and a.PROD_ID=#prod_id#
+   order by 1
+	 </select>
+	
+
+     <!-- '구매하기'에서 상품별 사이즈, 가격 가져오기 -->
+	 <select id="buyInfo" resultClass="bidvo" parameterClass="string">
+	 
+	  select a.size_name, nvl(tb.price,0) as bid_price ,a.size_id
+     from prod_size a, (select min(bid_price) as price ,c.size_ID as cid
+                         from bid b, PROD_SIZE c
+                         where  b.BID_POSITION ='seller'
+                           and b.SIZE_ID=c.SIZE_ID
+                           and b.BID_STATE = '0'
+                         group by c.size_ID) tb
+   where a.size_ID=tb.cid(+)
+    and a.PROD_ID=#prod_id#
+   order by 1
+	 </select>
+
+
+
+	</sqlMap>

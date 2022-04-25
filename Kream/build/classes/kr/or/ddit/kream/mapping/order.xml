@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap
+	PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+	"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="order">
+
+	<select id="selectOrderBid" parameterClass="bidVo" resultClass="bidVo" >
+	<!--
+		  판매자가 판매입찰했을 때 입찰가격이 같거나 높은 구매입찰의 입찰건 중에 가장 큰값을 가진 행을 조회 
+		  bid_price : 판매자가 판매입찰 한 가격
+		  size_id : 판매자가 판매입찰한 size_id
+	 -->
+	 select c.bid_id, c.mem_email, c.point
+       from ( select a.bid_id, a.mem_email, a.point, a.bid_date
+               from bid a , prod_size b
+			  where a.size_id = b.size_id
+  			    and a.bid_position = 'buyer'
+  	 			and a.bid_price = #bid_price#
+			    and a.size_id = #size_id#
+			    and a.bid_state = 0
+			   order by 4) c
+  	   where rownum = 1
+	</select>
+	
+	<select id="pointchk" parameterClass="string" resultClass="int">
+	<!-- 포인트 사용여부 -->
+		  select point
+    	    from bid
+           where bid_id = #bid_id#
+	</select>
+	
+	<insert id="insertBidTemp" parameterClass="bidVo">
+	<!-- selectOrderBid 결과가 존재할때 결과행을 응찰테이블에 추가 
+		 구매입찰코드, 판매자아이디 , 판매입찰가격, 응찰된 날짜  
+	-->
+		insert into bid_temp(bid_id,mem_email,temp_price,temp_date)
+	     values(#bid_id#, #mem_email#, #bid_price# , sysdate)
+	</insert>
+	
+	<update id="updateBidState" parameterClass="map">
+	<!-- 판매입찰코드와 구매입찰코드 입찰상태 변경
+	-->
+		 update bid
+   		    set bid_state = '1'
+    	  where bid_id = #bid_id1#
+             or bid_id = #bid_id2#
+	</update>
+	
+	<insert id="insertOrder" parameterClass="bidVo">
+	<!-- 결제 완료되면 bid_temp 
+			order_price : 포인트 사용여부에 따라 계산후 저장 
+	-->
+		insert into orders(bid_id,mem_email,order_date,order_price)
+  		 values(#bid_id#,#mem_email#, sysdate,#order_price# )
+	</insert>
+	
+	<select id="selectSellBid" parameterClass="bidVo" resultClass="bidVo">
+	<!--
+		  구매자가 구매입찰했을 때 
+		  구매자가 구매입찰한 가격이 같거나 낮은 판매입찰건 중에 가장 작은값을 가진 행을 조회 
+		  bid_price : 구매자가 구매입찰 한 가격
+		  size_id : 구매가 구매입찰한 size_id
+	 -->
+	select c.bid_id, c.mem_email
+      from ( select a.bid_id, a.mem_email,a.bid_price, a.bid_date
+               from bid a , prod_size b
+       		  where a.size_id = b.size_id
+  			    and a.bid_position = 'seller'
+  	   			and a.bid_price = #bid_price#
+  			    and a.size_id = #size_id#
+  			    and a.bid_state = 0
+  			  order by 4 ) c
+     where rownum = 1
+	</select>
+	
+	<update id="updateAmount" parameterClass="bidVo">
+	<!-- 판매자에게 정산해준다.
+		 판매입찰의 경우 bid_id : 구매입찰건의 bid_id 
+		 구매입찰의 경우 bid_id : 판매입찰건의 bid_id 
+		 mem_email : 판매자의 이메일 
+	 -->
+		update member 
+  		   set mem_point = mem_point + #bid_price#
+  		 where mem_email = #mem_email#
+	</update>
+	
+	<select id="selectProd" parameterClass="string" resultClass="prodDetailVo">
+		 select a.prod_name,
+		        b.photo_path,
+		        c.brand_name,
+                d.size_name
+		  from prod a, photo b, brand c ,prod_size d
+		  where a.prod_id = b.prod_id
+		    and a.brand_id = c.brand_id
+            and a.prod_id = d.prod_id
+		    and d.size_id = #size_id#
+	</select>
+	
+	<select id="getPoint" parameterClass="string" resultClass="string">
+		select mem_point 
+		  from member
+		 where mem_email = #mem_email#
+	</select>
+	
+	
+		<!-- 구매/판매 입찰 했을 때 bid테이블에 추가-->
+	<insert id="insertBid" parameterClass="bidVo">
+	  insert into bid
+       values(bidid_seq.nextval,sysdate,#bid_price#,#bid_position#,#mem_email#,#size_id#,'0',#point#)
+	
+		<selectKey keyProperty="bid_id" resultClass="string">
+			select bidid_seq.currval from dual
+		</selectKey>
+	
+	</insert>
+	
+	<select id="selectBid" parameterClass="bidVo" resultClass="string">
+		select bid_id 
+		  from bid
+		 where mem_email=#mem_email#
+		   and size_id=#size_id#
+		   and bid_position=#bid_position#
+		   and bid_state = '0'
+	</select>
+	
+	<update id="updateBid" parameterClass="bidVo">
+		 update bid
+		    set bid_date = sysdate,
+		        bid_price=#bid_price#,
+		        point=#point#
+		  where bid_id = #bid_id#
+	</update>
+	
+	<update id="updatePoint" parameterClass="bidVo">
+		  update member
+		     set mem_point = mem_point - #point#
+		   where mem_email = #mem_email#
+	</update>
+	
+	<update id="updateResell" parameterClass="bidVo">
+			update prod
+			   set prod_resell = #bid_price#
+			 where prod_id = #prod_id#
+	</update>
+	
+</sqlMap>

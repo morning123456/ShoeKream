@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--adminQnA-->
+<!DOCTYPE sqlMap
+	PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+	"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="adminQnA">
+
+<!-- 동적쿼리, 검색 조건에 따라 -->
+<sql id="search">
+      <dynamic prepend = " where">
+         <isNotEmpty property="stype" prepend= " and ">
+           <isNotEmpty property = "sword">
+              $stype$ like '%'||#sword#||'%'
+           </isNotEmpty>
+         </isNotEmpty>
+      </dynamic>
+  </sql>
+  
+	<select id="selectList"  parameterClass="map" resultClass="boardQnAVo">
+       select A.*,
+         	  (select count(*)
+           		 from board_reply
+          	    where board_reply.board_id = A.board_id) as creply
+     	 from (select rownum as rnum,
+                   	  B.*  
+             	 from ( select * 
+             	 		  from board_qna 
+             		    <include refid="search"/>
+             		    ORDER BY to_number(board_id) DESC) B
+		<![CDATA[
+	       	    where rownum <= #end#) A 
+	 	where A.rnum >= #start#
+     	]]>
+    
+     </select>
+     
+   <select id="totalCount" resultClass="int">
+       select count(*) from board_qna
+   </select>
+   
+   <select id="replyList"  parameterClass="String" resultClass="boardReplyVo">
+      select * from board_reply 
+         where board_id= #board_id#
+  </select>
+   
+   
+   <insert id="replyInsert" parameterClass="boardReplyVo">
+     insert into board_reply (BOARD_REPLY_ID,BOARD_ID,REP_CONTENT,REP_DATE)
+     values(
+       (SELECT NVL(MAX(to_number(BOARD_REPLY_ID)),0)+1 FROM board_reply),
+       #board_id#,
+       #rep_content#,
+       sysdate
+     )
+  </insert>
+  
+  <update id="replyUpdate" parameterClass = "boardReplyVo">
+  	update board_reply 
+  	set REP_CONTENT = #rep_content#,
+  		REP_DATE=sysdate
+  	where
+  		BOARD_REPLY_ID=#board_reply_id#
+  </update>
+  
+   <delete id="replyDelete"  parameterClass="String">
+      delete from board_reply
+         where BOARD_REPLY_ID= #board_reply_id#
+  </delete>
+  
+   
+</sqlMap>

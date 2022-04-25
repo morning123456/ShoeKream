@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE sqlMap
+	PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+	"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="member">
+	<insert id="insertMember" parameterClass="memberVo">
+		insert into member(mem_email,mem_pass,mem_name,mem_sns)
+		values(#mem_email#,#mem_pass#,#mem_name#,#mem_sns#)
+	</insert>
+	
+	<update id="updateAcc" parameterClass="memberVo">
+		update member set
+		 mem_bank = #mem_bank#,
+		 mem_acc = #mem_acc#
+		where mem_email = #mem_email#  
+	</update>
+	
+	<update id="updateMember" parameterClass="map">
+		update member set
+		 $para$ = #value#
+		where mem_email = #mem_email#  
+	</update>
+	
+	<select id="findEmail" parameterClass='string' resultClass="string">
+		select mem_email from member
+		 where mem_name = #data#
+	</select>
+	
+	<select id="findPass" parameterClass='memberVo' resultClass="string">
+		select mem_pass from member
+		 where mem_name = #mem_name#
+		   and mem_email = #mem_email#
+	</select>
+	
+	<select id="getMember" parameterClass='memberVo' resultClass="memberVo">
+		select * from member
+		where mem_email = #mem_email#
+		<isNotNull prepend="AND" property="mem_pass">
+	        mem_pass = #mem_pass#
+		</isNotNull>
+	</select>
+	
+	<select id="getBidList" parameterClass="map" resultClass="myBuyingListVo">
+		SELECT A.PROD_ID
+	     	 , A.PROD_NAME
+	         , B.SIZE_NAME
+	         , TO_CHAR(C.BID_DATE,'YYYY/MM/DD') AS BID_DATE
+	     	 , C.BID_STATE
+	     	 , C.BID_PRICE
+	     	 , D.PHOTO_PATH
+	  	  FROM PROD A, PROD_SIZE B
+	         , (SELECT BID_DATE
+	                 , BID_PRICE
+	             	 , BID_STATE
+	             	 , SIZE_ID 
+	              FROM BID
+	         	 WHERE MEM_EMAIL = #mem_email#
+	         	   AND BID_POSITION = #bid_position#) C
+	    	 , PHOTO D
+	 	 WHERE A.PROD_ID=B.PROD_ID
+	       AND C.SIZE_ID=B.SIZE_ID
+	       AND D.PROD_ID=A.PROD_ID
+	       <![CDATA[ AND ROWNUM <= 5
+         ORDER BY 4 DESC]]>
+	</select>
+	
+	<select id="searchbuyList" parameterClass="map" resultClass="myBuyingListVo">
+		SELECT A.PROD_ID
+		     , A.PROD_NAME
+		     , B.SIZE_NAME
+		     , C.BID_DATE as date1
+		     , TO_CHAR(C.BID_DATE,'YYYY/MM/DD') as BID_DATE
+		     , C.BID_STATE
+		     , C.BID_PRICE
+		     , D.PHOTO_PATH
+		  FROM PROD A, PROD_SIZE B
+		     , (SELECT BID_DATE
+		             , BID_PRICE
+		             , BID_STATE
+		             , SIZE_ID 
+		          FROM BID
+		         WHERE MEM_EMAIL = #mem_email#
+		           AND BID_POSITION = #bid_position#
+		           AND BID_DATE BETWEEN TO_DATE(#start#,'YYYY-MM-DD')AND TO_DATE(#end#,'YYYY-MM-DD')) C
+		     , PHOTO D
+		 WHERE A.PROD_ID=B.PROD_ID
+		   AND C.SIZE_ID=B.SIZE_ID
+		   AND D.PROD_ID=A.PROD_ID
+		  ORDER BY 5 $sort$
+	</select>
+	
+	<select id="getBuySellCount" parameterClass="string" resultClass="HashMap">
+		   SELECT COUNT((case when BID_POSITION = 'buyer' then 0 end)) as buyerall
+                , COUNT((case when BID_POSITION = 'seller' then 0 end)) as sellerall
+                , COUNT((case when BID_POSITION = 'buyer' and BID_STATE = 1 then 0 end)) as buyer1
+                , COUNT((case when BID_POSITION = 'seller' and BID_STATE = 1 then 0 end)) as seller1
+                , COUNT((case when BID_POSITION = 'buyer' and BID_STATE = 0 then 0 end)) as buyer0
+                , COUNT((case when BID_POSITION = 'seller' and BID_STATE = 0 then 0 end)) as seller0
+             FROM BID
+            WHERE MEM_EMAIL = #data#
+	</select>
+	
+	<select id="wishList" parameterClass="string" resultClass="HashMap">
+		SELECT A.PROD_ID, A.PROD_NAME, B.BRAND_NAME, C.PHOTO_PATH ,A.PROD_RESELL
+		  FROM PROD A, BRAND B, PHOTO C
+		     , (SELECT PROD_ID
+		          FROM LIKE_PROD
+		         WHERE MEM_EMAIL = #data#) D
+		 WHERE A.PROD_ID = C.PROD_ID
+		   AND A.BRAND_ID = B.BRAND_ID
+		   AND A.PROD_ID = D.PROD_ID
+	
+	</select>
+	
+	<select id="addrcount" parameterClass="string" resultClass="string">
+		SELECT to_char(COUNT(*)) as addrcount
+          FROM ADDRESS
+         WHERE MEM_EMAIL = #data#
+	</select>
+	
+	<update id="updateaddr" parameterClass="addressVo">
+		update address set
+			name = #name#,
+			addr1 = #addr1#,
+			phone_num = #phone_num#,
+			zip_code = #zip_code#,
+			addr2 = #addr2#
+			where mem_email = #mem_email#
+	</update>
+	
+	<update id="updateProfile" parameterClass="memberVo">
+		update member set
+		   mem_photo = #mem_photo#
+		  where mem_email = #mem_email# 
+	</update>
+	
+	<insert id="insertaddr" parameterClass="string">
+		 insert into address(mem_email)
+ 	       values(#data#) 
+	</insert>
+	
+	<select id="snsCount" parameterClass="string" resultClass="string">
+		SELECT to_char(count(*)) as snscount
+			FROM member
+			where mem_sns = #data#
+	</select>
+	
+	<select id="getSnsMember" parameterClass="string" resultClass="memberVo">
+		select * from member
+		where mem_sns = #data#
+	</select>
+	
+
+</sqlMap>

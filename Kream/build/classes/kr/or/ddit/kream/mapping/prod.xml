@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE sqlMap
+	PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+	"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+	
+	<sqlMap namespace = "prod">
+		
+	<!-- 메인페이지 상품 리스트 -->
+	<select id = "prodlist" resultClass = "mainpageprodVo">
+		select a.prod_id, a.prod_name, b.brand_name, c.photo_path, a.prod_resell
+		  from prod a, brand b, photo c
+		 where a.prod_id = c.prod_id
+		   and a.brand_id = b.brand_id
+	</select>
+	
+	<select id = "prodSearch" resultClass = "mainpageprodVo" parameterClass = "string">
+		select a.prod_id, a.prod_name, a.prod_resell, b.brand_name, c.photo_path
+  		  from prod a, brand b, photo c
+ 		 where a.prod_id = c.prod_id
+   		   and a.brand_id = b.brand_id
+   		   and a.prod_name like '%'|| #input# ||'%'
+	</select>
+	
+	<!-- 카테고리 -->
+	<select id = "lprodlist" resultClass = "lprodVo">
+		select * from lprod
+	</select>
+	
+	<!-- 브랜드 -->
+	<select id = "brandlist" resultClass = "brandVo">
+		select * from brand
+	</select>
+	
+	<!-- 상품 상세페이지 -->
+	<select id = "prodDetail" resultClass = "prodDetailVo" parameterClass = "string">
+		select a.prod_id,
+		        a.prod_name,
+		      a.prod_resell,
+		      a.org_price,
+		      b.photo_path,
+		      c.brand_name,
+		      to_char(a.prod_launch, 'YYYY/MM/DD') prod_launch
+		  from prod a, photo b, brand c
+		  where a.prod_id = b.prod_id
+		    and a.brand_id = c.brand_id
+		    and a.prod_id = #prodid#
+	</select>
+	
+	<!-- 그래프에 필요한 정보 -->
+	<select id = "getGraphInfo" resultClass = "graphVo" parameterClass = "graphVo">
+		select c.prod_id, a.bid_id, a.temp_price, to_char(a.temp_date, 'YYYY/MM/DD') temp_date, c.size_name
+		  from bid_temp a, bid b, prod_size c
+		 where a.bid_id = b.bid_id
+		   and b.size_id = c.size_id
+		   and c.prod_id = #prod_id#
+		   and c.size_name = #size_name#
+		 order by temp_date
+	</select>
+	<!-- 그래프 모든사이즈 값 -->
+	<select id = "getAllGraphInfo" resultClass = "graphVo" parameterClass = "String">
+		select c.prod_id, a.bid_id, a.temp_price, to_char(a.temp_date, 'YYYY/MM/DD') temp_date, c.size_name
+		  from bid_temp a, bid b, prod_size c
+		 where a.bid_id = b.bid_id
+		   and b.size_id = c.size_id
+		   and c.prod_id = #prod_id#
+		 order by temp_date
+	</select>
+	
+	
+	<!-- 한 상품에 대한 최근 거래가 -->
+	<select id = "getRecentPrice" resultClass = "String" parameterClass = "graphVo">
+		select max(e.temp_price) as mprice
+	      from bid_temp e,
+	       (select max(d.mdate) as mmdate 
+	          from (select c.temp_price as tprice, a.prod_id, c.temp_date as mdate
+	                  from prod_size a, bid b, bid_temp c
+	                 where a.SIZE_ID = b.SIZE_ID
+	                   and b.bid_id = c.bid_id
+	                   and a.prod_id = #prod_id#
+	                   and a.SIZE_NAME = #size_name#) d ) f
+	         where e.temp_date = f.mmdate
+	</select>
+	
+	<!-- 관심상품 중복 체크 -->
+	<select id = "checkLikeProd" resultClass = "int" parameterClass = "likeprodVo">
+			select count(*) from LIKE_PROD 
+			 where MEM_EMAIL = #mem_email#
+			   and PROD_ID = #prod_id#
+	</select>
+	
+	<!-- 관심상품 등록 -->
+	<update id = "prodLikeInsert" parameterClass = "likeprodVo">
+		insert into like_prod values(
+       		(select nvl(max(to_number(like_id)),0)+1 from like_prod),
+     		#mem_email#,
+     		#prod_id#)
+	</update>
+	
+	<!-- 관심상품 삭제 -->
+	<delete id = "deleteLikeProd" parameterClass = "likeprodVo">
+		delete from like_prod
+		 where mem_email = #mem_email#
+  		   and prod_id = #prod_id#
+	</delete>
+	
+		<!-- 체결 거래 내역 출력 쿼리 -->
+	<select id = "bidTrans" resultClass = "bidVo" parameterClass = "string">
+	    select a.size_name, c.temp_price, to_char(c.temp_date, 'YYYY/MM/DD') temp_date
+      	  from prod_size a, bid b, bid_temp c
+     	 where a.size_id = b.size_id
+       	   and b.bid_id = c.bid_id
+       	   and a.prod_id = #prodid#
+       	   <![CDATA[and rownum <= 5]]>
+	</select>
+	
+	<select id = "bidTrans2" resultClass = "bidVo" parameterClass = "bidVo">
+	 select a.bid_price, to_char(a.bid_date, 'YYYY/MM/DD') bid_date, b.size_name, b.prod_id
+       from bid a, prod_size b
+      WHERE a.size_id = b.size_id
+       and b.prod_id = #prod_id#
+       and a.bid_position = #bid_position#
+	<![CDATA[and rownum <= 5]]>
+     order by bid_date desc
+	</select>
+	<!-- 거래내역 끝 -->
+	
+	<select id = "reviewList" resultClass = "reviewVo" parameterClass = "string">
+		   select b.*, a.mem_alias, a.mem_name, a.mem_photo
+		     from member a,
+		        (select * from review 
+		          where prod_id = #prod_id#
+		          order by review_date) b
+		     where a.mem_email = b.mem_email
+  		  <![CDATA[and rownum <= 8]]>
+	</select>
+	
+	<select id = "reviewPage" resultClass = "reviewVo">
+	      select distinct b.prod_id,
+	  				     a.prod_name,
+	  				     a.prod_resell,
+	  				     b.review_content,
+	  				     b.review_photopath,
+	  				     c.mem_email,
+	 				      c.mem_alias,
+	 				      c.mem_photo,
+	  				     b.review_date,
+	   				    d.photo_path
+	         from prod a, review b, member c, photo d
+	        where a.prod_id = b.prod_id
+	          and b.mem_email = c.mem_email
+	          and d.prod_id = a.prod_id
+	          order by b.review_date desc
+	</select>
+	
+	  <!--  즉시 구매가에서 제일 작은 값-->
+	<select id = "getbuyPrice" resultClass = "integer" parameterClass = "String">
+		  	 select nvl(min(b.bid_price),0) as price 
+			      from bid b, prod_size c
+			     where b.bid_position ='seller'
+			       and b.size_id=c.size_id
+			       and b.bid_state = 0
+			       and c.prod_id = #prod_id#
+	</select>
+
+	  <!--  즉시 판매가에서 제일 큰 값-->
+	<select id = "getsellPrice" resultClass = "integer" parameterClass = "String">
+		    select nvl(max(b.bid_price),0) as price 
+		      from bid b, prod_size c
+		     where b.bid_position ='buyer'
+		       and b.size_id=c.size_id
+		       and b.bid_state = 0
+		       and c.prod_id = #prod_id#
+	</select>
+	
+	<!-- 카테고리 클릭 항목에 맞춰서 상품 리스트를 출력하는 쿼리 -->
+	<select id = "categoryProdlist" parameterClass = "map" resultClass = "prodDetailVo">
+	    select a.prod_id, a.prod_name, a.prod_resell, b.photo_path, d.brand_name
+          from prod a, photo b, lprod c, brand d
+         where a.prod_id = b.prod_id
+           and a.lprod_id = c.lprod_id
+           and a.brand_id = d.brand_id
+       <isNotEmpty property = "litem1">
+            and c.lprod_nm like '%'|| #litem1# ||'%' 
+       </isNotEmpty>
+       <isNotEmpty property = "litem2">
+            or c.lprod_nm like '%'|| #litem2# ||'%'
+       </isNotEmpty> 
+       <isNotEmpty property = "litem3">
+            or c.lprod_nm like '%'|| #litem3# ||'%'
+       </isNotEmpty> 
+       <isNotEmpty property = "litem4">
+            or c.lprod_nm like '%'|| #litem4# ||'%'
+       </isNotEmpty> 
+            
+       <isNotEmpty property = "bitem1">
+			and d.brand_name like '%'|| #bitem1# ||'%' 
+	   </isNotEmpty> 
+       <isNotEmpty property = "bitem2">
+			or d.brand_name like '%'|| #bitem2# ||'%' 
+	   </isNotEmpty> 
+       <isNotEmpty property = "bitem3">
+			or d.brand_name like '%'|| #bitem3# ||'%' 
+	   </isNotEmpty> 
+       <isNotEmpty property = "bitem4">
+			or d.brand_name like '%'|| #bitem4# ||'%' 
+	   </isNotEmpty> 
+       <isNotEmpty property = "bitem5">
+			or d.brand_name like '%'|| #bitem5# ||'%' 
+	   </isNotEmpty> 
+       <isNotEmpty property = "bitem6">
+			or d.brand_name like '%'|| #bitem6# ||'%' 
+	   </isNotEmpty> 
+       <isNotEmpty property = "bitem7">
+			or d.brand_name like '%'|| #bitem7# ||'%' 
+	   </isNotEmpty> 
+       <isNotEmpty property = "bitem8">
+			or d.brand_name like '%'|| #bitem8# ||'%' 
+	   </isNotEmpty> 
+       <isNotEmpty property = "bitem9">
+			or d.brand_name like '%'|| #bitem9# ||'%' 
+	   </isNotEmpty> 
+	</select>
+	
+
+	
+	
+	</sqlMap>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

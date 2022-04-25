@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMapConfig
+		PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"
+		"http://ibatis.apache.org/dtd/sql-map-config-2.dtd">
+<sqlMapConfig>
+	<!-- 
+		DB와 연결하는 정보를 properties파일에 설정해 놓고
+		이 properties파일의 내용을 읽어와 설정한다.
+	 -->
+	<properties resource="kr/or/ddit/kream/config/db.properties"/>
+	
+	<settings useStatementNamespaces="true"	/>
+						
+	<!-- 
+			vo클래스등의 이름이 패키지명까지 기술하면
+			길어지는데 이것을 간단히 표시하기 위한 alias를
+			지정하는 방법
+			<typeAlias alias="alias명" type="클래스의풀네임"/>
+	 -->
+	 <typeAlias alias = "prodVo" type = "kr.or.ddit.kream.vo.ProdVo"/>
+	 <typeAlias alias = "cardVo" type = "kr.or.ddit.kream.vo.CardVo"/>
+	 <typeAlias alias = "boardQnAVo" type = "kr.or.ddit.kream.vo.BoardQnAVo"/>
+	 <typeAlias alias = "memberVo" type = "kr.or.ddit.kream.vo.MemberVO"/>
+	 <typeAlias alias = "bidVo" type = "kr.or.ddit.kream.vo.BidVo"/>
+	 <typeAlias alias = "mainpageprodVo" type = "kr.or.ddit.kream.vo.MainPageProdVo"/>
+	 <typeAlias alias = "prodDetailVo" type="kr.or.ddit.kream.vo.ProdDetailVo"/>	
+	 <typeAlias alias = "lprodVo" type = "kr.or.ddit.kream.vo.LprodVo"/>
+	 <typeAlias alias = "myBuyingListVo" type = "kr.or.ddit.kream.vo.MyBuyingListVO"/>
+	 <typeAlias alias = "addressVo" type = "kr.or.ddit.kream.vo.AddressVo"/>
+	 <typeAlias alias = "likeprodVo" type = "kr.or.ddit.kream.vo.LikeProdVo"/>
+	 <typeAlias alias = "graphVo" type = "kr.or.ddit.kream.vo.GraphVo"/>
+	 <typeAlias alias = "noticeVo" type = "kr.or.ddit.kream.vo.NoticeVo"/>
+	 <typeAlias alias = "brandVo" type = "kr.or.ddit.kream.vo.BrandVo"/>
+	 <typeAlias alias = "reviewVo" type = "kr.or.ddit.kream.vo.ReviewVo"/>
+	 <typeAlias alias = "boardReplyVo" type = "kr.or.ddit.kream.vo.BoardReplyVo"/>
+	 	 						
+	<!-- DB와의 연결을 처리하는 부분 -->
+	 <!-- db.properties파일 이용하기 -->
+	<transactionManager type="JDBC">
+		<dataSource type="SIMPLE"><!-- 직접 설정 -->
+			<property name="JDBC.Driver" value="${driver}"/>
+			<property name="JDBC.ConnectionURL" value="${url}"/>
+			<property name="JDBC.Username" value="${user}"/>
+			<property name="JDBC.Password" value="${pass}"/>
+		</dataSource>
+	</transactionManager>
+
+	
+	<!-- 
+		sql문을 처리하는 부분은 xml문서로 따로 만든 후
+		그 xml문서를 아래와 같이 연결하여 사용한다.
+	-->
+	<!-- sql문을 처리하는 sqlMap 태그들을 기술한다. -->
+	<!-- <sqlMap resource="경로명/파일명.xml"/> -->
+		
+	    <sqlMap resource="kr/or/ddit/kream/mapping/prod.xml"/>
+		<sqlMap resource="kr/or/ddit/kream/mapping/card.xml"/>
+		<sqlMap resource="kr/or/ddit/kream/mapping/boardQnA.xml"/> 
+		<sqlMap resource="kr/or/ddit/kream/mapping/member.xml"/>
+		<sqlMap resource="kr/or/ddit/kream/mapping/adminBoard.xml"/>
+	    <sqlMap resource="kr/or/ddit/kream/mapping/bid.xml"/>
+	    <sqlMap resource="kr/or/ddit/kream/mapping/order.xml"/>
+	    <sqlMap resource="kr/or/ddit/kream/mapping/address.xml"/>
+		<sqlMap resource="kr/or/ddit/kream/mapping/adminNotice.xml"/>
+		<sqlMap resource="kr/or/ddit/kream/mapping/adminQnA.xml"/>
+		<sqlMap resource="kr/or/ddit/kream/mapping/boardNotice.xml"/>
+	    
+</sqlMapConfig>
+
